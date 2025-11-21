@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{{ municipality }} | UCF Accreditation Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <h1>{{ municipality }}</h1>
+    <p>All available accreditation report snapshots for this municipality.</p>
+    <p><a href="/">Back to search</a></p>
+  </header>
+  <section>
+    {% for entry in entries %}
+      <article class="result">
+        <h3>Report year {{ entry.report_year or 'N/A' }}</h3>
+        <ul>
+          <li><strong>County:</strong> {{ entry.county or 'Unknown' }}</li>
+          <li><strong>Updated:</strong> {{ entry.updated or 'Unknown' }}</li>
+          <li><strong>Plan year:</strong> {{ entry.plan_year or 'N/A' }}</li>
+          <li><strong>Accredited:</strong> {% if entry.accredited is none %}Unknown{% elif entry.accredited %}Yes{% else %}No{% endif %}</li>
+        </ul>
+        <p><a href="{{ entry.pdf_url }}" target="_blank">Open report PDF to page {{ entry.page }}</a></p>
+      </article>
+    {% endfor %}
+  </section>
+</body>
+</html>

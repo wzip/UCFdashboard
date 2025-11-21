@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>UCF Accreditation Dashboard</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header>
+    <h1>Urban & Community Forestry Accreditation Dashboard</h1>
+    <p>Search by county, municipality, year, or accreditation status to quickly reach the relevant PDF report page.</p>
+  </header>
+
+  <section class="filters">
+    <label>County
+      <select id="county">
+        <option value="">All counties</option>
+        {% for county in counties %}
+          <option value="{{ county }}">{{ county }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Municipality
+      <input id="municipality" type="text" placeholder="Start typing a municipality name" list="municipality-list" />
+      <datalist id="municipality-list"></datalist>
+    </label>
+    <label>Report Year
+      <select id="year">
+        <option value="">Any year</option>
+        {% for year in years %}
+          <option value="{{ year }}">{{ year }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label>Accredited
+      <select id="accredited">
+        <option value="">Either</option>
+        <option value="true">Yes</option>
+        <option value="false">No</option>
+      </select>
+    </label>
+    <button id="apply">Apply filters</button>
+  </section>
+
+  <section id="results"></section>
+
+  <template id="result-item">
+    <article class="result">
+      <h3 class="municipality"></h3>
+      <p class="meta"></p>
+      <p class="links"></p>
+    </article>
+  </template>
+
+  <script>
+    async function loadMunicipalities() {
+      const response = await fetch('/api/meta');
+      const data = await response.json();
+      const list = document.getElementById('municipality-list');
+      data.municipalities.forEach(name => {
+        const option = document.createElement('option');
+        option.value = name;
+        list.appendChild(option);
+      });
+    }
+
+    async function search() {
+      const params = new URLSearchParams();
+      ['county', 'municipality', 'year', 'accredited'].forEach(id => {
+        const value = document.getElementById(id).value;
+        if (value) params.append(id, value);
+      });
+      const response = await fetch('/api/reports?' + params.toString());
+      const results = await response.json();
+      const container = document.getElementById('results');
+      container.innerHTML = '';
+      if (!results.length) {
+        container.innerHTML = '<p>No results found.</p>';
+        return;
+      }
+      results.forEach(item => {
+        const template = document.getElementById('result-item').content.cloneNode(true);
+        template.querySelector('.municipality').textContent = `${item.municipality} (${item.county || 'Unknown County'})`;
+        const accreditation = item.accredited === null ? 'Unknown accreditation' : (item.accredited ? 'Accredited' : 'Not accredited');
+        template.querySelector('.meta').textContent = `Report year ${item.report_year || 'N/A'}, updated ${item.updated || 'Unknown'}, plan year ${item.plan_year || 'N/A'} — ${accreditation}`;
+        const links = template.querySelector('.links');
+        const pdfLink = document.createElement('a');
+        pdfLink.href = item.pdf_url;
+        pdfLink.textContent = 'Open PDF to page';
+        pdfLink.target = '_blank';
+        const profileLink = document.createElement('a');
+        profileLink.href = item.municipality_url;
+        profileLink.textContent = 'View municipality summary';
+        links.appendChild(pdfLink);
+        links.appendChild(document.createTextNode(' | '));
+        links.appendChild(profileLink);
+        container.appendChild(template);
+      });
+    }
+
+    document.getElementById('apply').addEventListener('click', search);
+    loadMunicipalities();
+    search();
+  </script>
+</body>
+</html>
